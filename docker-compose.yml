@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  client:
+    build: 
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - WDS_SOCKET_PORT=0
+    env_file:
+      - ./client/.env
+    depends_on:
+      - server
+
+  server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEBUG=True
+    env_file:
+      - ./server/.env
+    command: python manage.py runserver 0.0.0.0:8000
+
+networks:
+  default:
+    driver: bridge
