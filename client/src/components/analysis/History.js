@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const History = () => {
   const navigate = useNavigate();
+  const { user } = useOutletContext();
   const [analyses, setAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +15,10 @@ const History = () => {
   const fetchAnalyses = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/analyses/', {
-        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${user.access_token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {

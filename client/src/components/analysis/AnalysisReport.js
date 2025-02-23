@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 
 const AnalysisReport = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useOutletContext();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +17,10 @@ const AnalysisReport = () => {
   const fetchAnalysis = async () => {
     try {
       const response = await fetch(`http://localhost:8000/api/analyses/${id}/`, {
-        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${user.access_token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {

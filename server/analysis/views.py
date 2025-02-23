@@ -27,28 +27,50 @@ class SupabaseAuthentication(BaseAuthentication):
         token = auth_header.split(' ')[1]
         try:
             # Verify token with Supabase
-            user = supabase.auth.get_user(token)
-            if not user:
+            response = supabase.auth.get_user(token)
+            user_data = response.user
+            
+            if not user_data:
                 raise AuthenticationFailed('Invalid token')
 
             # Get or create Django user
             django_user, created = User.objects.get_or_create(
-                username=user.user.email,
-                defaults={'email': user.user.email}
+                username=user_data.email,
+                defaults={
+                    'email': user_data.email,
+                    'is_active': True
+                }
             )
             
-            return (django_user, None)
+            # Store the token in the request for later use
+            request.auth = token
+            return (django_user, token)
+            
         except Exception as e:
-            raise AuthenticationFailed('Invalid token')
+            print(f'Authentication error: {str(e)}')
+            raise AuthenticationFailed('Invalid token or authentication failed')
 
 class AnalysisViewSet(viewsets.ModelViewSet):
     serializer_class = AnalysisSerializer
     authentication_classes = [SupabaseAuthentication]
     permission_classes = [IsAuthenticated]
-
+    
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:  # Admin users can see all analyses
+        return Analysis.objects.filter(user=user).order_by('-created_at')
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            print(f'Error creating analysis: {str(e)}')
+            return Response(
+                {'detail': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
             return Analysis.objects.all()
         return Analysis.objects.filter(user=user)  # Regular users see only their analyses
 
