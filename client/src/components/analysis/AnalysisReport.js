@@ -16,6 +16,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Chip,
+  Stack
 } from '@mui/material';
 import {
   PictureAsPdf as PdfIcon,
@@ -31,6 +33,9 @@ import {
   Warning,
   CheckCircle,
   Lightbulb,
+  CheckCircleOutline as ApproveIcon,
+  CancelOutlined as RejectIcon,
+  FindInPage as ReviewIcon
 } from '@mui/icons-material';
 import {
   BarChart,
@@ -58,11 +63,80 @@ const AnalysisReport = () => {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [customerName, setCustomerName] = useState('');
+  const [status, setStatus] = useState('pending');
   const reportRef = useRef(null);
 
+  const updateStatus = async (newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/analyses/${id}/update_status/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      const data = await response.json();
+      setStatus(data.status);
+      setAnalysis(prev => ({ ...prev, status: data.status }));
+    } catch (err) {
+      setError('Failed to update status: ' + err.message);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      case 'review':
+        return 'info';
+      default:
+        return 'warning';
+    }
+  };
+
   useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/analyses/${id}/`, {
+          headers: {
+            'Authorization': `Bearer ${user.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch analysis');
+        }
+
+        const data = await response.json();
+        setAnalysis(data);
+        
+        // Extract customer name from customer_input
+        const customerInput = typeof data.customer_input === 'string' 
+          ? JSON.parse(data.customer_input) 
+          : data.customer_input;
+        
+        setCustomerName(customerInput.customer_name || 'Unknown');
+        setStatus(data.status || 'pending');
+      } catch (error) {
+        console.error('Error fetching analysis:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchAnalysis();
-  }, [id]);
+  }, [id, user.access_token]);
 
   const fetchAnalysis = async () => {
     try {
@@ -443,17 +517,56 @@ const AnalysisReport = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }} ref={reportRef}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Loan Analysis Report
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<PdfIcon />}
-          onClick={generatePDF}
-        >
-          Download PDF
-        </Button>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h4" component="h1">
+              Loan Analysis Report - {customerName}
+            </Typography>
+            <Chip
+              label={status.charAt(0).toUpperCase() + status.slice(1)}
+              color={getStatusColor(status)}
+              sx={{ mt: 1 }}
+            />
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<PdfIcon />}
+            onClick={generatePDF}
+          >
+            Download PDF
+          </Button>
+        </Box>
+        
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<ApproveIcon />}
+            onClick={() => updateStatus('approved')}
+            disabled={status === 'approved'}
+          >
+            Approve
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<RejectIcon />}
+            onClick={() => updateStatus('rejected')}
+            disabled={status === 'rejected'}
+          >
+            Reject
+          </Button>
+          <Button
+            variant="contained"
+            color="info"
+            startIcon={<ReviewIcon />}
+            onClick={() => updateStatus('review')}
+            disabled={status === 'review'}
+          >
+            Mark for Review
+          </Button>
+        </Stack>
       </Box>
 
       <Grid container spacing={3}>
