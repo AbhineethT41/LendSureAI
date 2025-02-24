@@ -1,5 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Button,
+  Chip,
+  CircularProgress,
+  Alert,
+  Container,
+} from '@mui/material';
+import {
+  Person,
+  AccessTime,
+  Phone,
+  Add as AddIcon,
+  Assessment as AssessmentIcon,
+} from '@mui/icons-material';
 
 const History = () => {
   const navigate = useNavigate();
@@ -7,6 +26,43 @@ const History = () => {
   const [analyses, setAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const getCustomerName = (analysis) => {
+    try {
+      const result = analysis.analysis_result;
+      if (typeof result === 'string') {
+        const parsedResult = JSON.parse(result);
+        return parsedResult.customer_profile?.name || 'N/A';
+      }
+      return result.customer_profile?.name || 'N/A';
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  const getDecision = (analysis) => {
+    try {
+      const result = analysis.analysis_result;
+      if (typeof result === 'string') {
+        const parsedResult = JSON.parse(result);
+        return parsedResult.recommendation?.decision || 'PENDING';
+      }
+      return result.recommendation?.decision || 'PENDING';
+    } catch (e) {
+      return 'PENDING';
+    }
+  };
+
+  const getDecisionColor = (decision) => {
+    switch (decision?.toUpperCase()) {
+      case 'APPROVED':
+        return 'success';
+      case 'REJECTED':
+        return 'error';
+      default:
+        return 'warning';
+    }
+  };
 
   useEffect(() => {
     fetchAnalyses();
@@ -36,61 +92,91 @@ const History = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-        {error}
-      </div>
+      <Container maxWidth="lg">
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Analysis History</h1>
-        <button
+    <Container maxWidth="lg">
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AssessmentIcon fontSize="large" />
+          Analysis History
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => navigate('/new-analysis')}
-          className="btn btn-primary"
         >
           New Analysis
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      <div className="space-y-6">
-        {analyses.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No analyses found</p>
-          </div>
-        ) : (
-          analyses.map((analysis) => (
-            <div key={analysis.id} className="card hover:shadow-lg transition-shadow duration-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {analysis.customer_phone}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {new Date(analysis.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigate(`/analysis/${analysis.id}`)}
-                  className="btn btn-secondary"
-                >
-                  View Analysis
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+      {analyses.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography color="text.secondary">No analyses found</Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {analyses.map((analysis) => (
+            <Grid item xs={12} sm={6} md={4} key={analysis.id}>
+              <Card
+                sx={{
+                  height: '100%',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
+                  },
+                }}
+                onClick={() => navigate(`/analysis/${analysis.id}`)}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" component="div">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Person />
+                        {getCustomerName(analysis)}
+                      </Box>
+                    </Typography>
+                    <Chip
+                      label={getDecision(analysis)}
+                      color={getDecisionColor(getDecision(analysis))}
+                      size="small"
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Phone fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {analysis.customer_phone}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AccessTime fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(analysis.created_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Container>
   );
 };
 

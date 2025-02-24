@@ -6,3 +6,4 @@ supabase==1.0.3
 requests==2.31.0
 reportlab==4.0.7
 gunicorn==21.2.0
+groq
