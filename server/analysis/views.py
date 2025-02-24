@@ -9,13 +9,14 @@ from .models import Analysis
 from .serializers import AnalysisSerializer
 import os
 import json
-from supabase import create_client
+from supabase import create_client, Client
 from groq import Groq
+from django.conf import settings
 
 # Initialize Supabase client
-supabase = create_client(
-    os.environ.get('SUPABASE_URL'),
-    os.environ.get('SUPABASE_KEY')
+supabase: Client = create_client(
+    supabase_url=settings.SUPABASE_URL,
+    supabase_key=settings.SUPABASE_ANON_KEY
 )
 
 class SupabaseAuthentication(BaseAuthentication):

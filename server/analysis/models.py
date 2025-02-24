@@ -1,13 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+from supabase import create_client, Client
 import os
-from supabase import create_client
 
 # Initialize Supabase client
-supabase = create_client(
-    os.environ.get('SUPABASE_URL'),
-    os.environ.get('SUPABASE_KEY')
+supabase: Client = create_client(
+    supabase_url=settings.SUPABASE_URL,
+    supabase_key=settings.SUPABASE_ANON_KEY
 )
 
 class Analysis(models.Model):

@@ -76,8 +76,9 @@ DATABASES = {
 }
 
 # Supabase configuration
+SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID')
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -116,6 +117,10 @@ CORS_ALLOW_HEADERS = ['*']
 
 # REST Framework settings
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'analysis.authentication_v2.SupabaseAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
@@ -123,3 +128,10 @@ REST_FRAMEWORK = {
 
 # Add 'rest_framework.authtoken' to INSTALLED_APPS
 INSTALLED_APPS += ['rest_framework.authtoken']
+
+# Cache configuration for JWKS
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
