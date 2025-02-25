@@ -26,6 +26,13 @@ const History = () => {
   const [analyses, setAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+
+  const statusOptions = ['ALL', 'APPROVED', 'REJECTED', 'MARK FOR REVIEW', 'PENDING'];
+
+  const filteredAnalyses = analyses.filter(analysis => 
+    selectedStatus === 'ALL' ? true : analysis.status?.toUpperCase() === selectedStatus
+  );
 
   const getCustomerName = (analysis) => {
     try {
@@ -120,13 +127,28 @@ const History = () => {
         </Button>
       </Box>
 
-      {analyses.length === 0 ? (
+      <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        {statusOptions.map((status) => (
+          <Chip
+            key={status}
+            label={status}
+            onClick={() => setSelectedStatus(status)}
+            color={selectedStatus === status ? getDecisionColor(status) : 'default'}
+            variant={selectedStatus === status ? 'filled' : 'outlined'}
+            sx={{ cursor: 'pointer' }}
+          />
+        ))}
+      </Box>
+
+      {filteredAnalyses.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography color="text.secondary">No analyses found</Typography>
+          <Typography color="text.secondary">
+            {analyses.length === 0 ? 'No analyses found' : 'No analyses match the selected filter'}
+          </Typography>
         </Box>
       ) : (
         <Grid container spacing={3}>
-          {analyses.map((analysis) => (
+          {filteredAnalyses.map((analysis) => (
             <Grid item xs={12} sm={6} md={4} key={analysis.id}>
               <Card
                 sx={{
