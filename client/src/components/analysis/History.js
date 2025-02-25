@@ -32,25 +32,19 @@ const History = () => {
       const result = analysis.analysis_result;
       if (typeof result === 'string') {
         const parsedResult = JSON.parse(result);
-        return parsedResult.customer_profile?.name || 'N/A';
+        const match = parsedResult.summary.overall_assessment.match(/^([^']+)'s/);
+        return match ? match[1] : 'N/A';
       }
-      return result.customer_profile?.name || 'N/A';
+      const match = result.summary.overall_assessment.match(/^([^']+)'s/);
+      return match ? match[1] : 'N/A';
     } catch (e) {
       return 'N/A';
     }
   };
 
   const getDecision = (analysis) => {
-    try {
-      const result = analysis.analysis_result;
-      if (typeof result === 'string') {
-        const parsedResult = JSON.parse(result);
-        return parsedResult.recommendation?.decision || 'PENDING';
-      }
-      return result.recommendation?.decision || 'PENDING';
-    } catch (e) {
-      return 'PENDING';
-    }
+    // Simply return the status from the analyses table
+    return analysis.status || 'PENDING';
   };
 
   const getDecisionColor = (decision) => {
@@ -59,8 +53,12 @@ const History = () => {
         return 'success';
       case 'REJECTED':
         return 'error';
-      default:
+      case 'MARK FOR REVIEW':
+        return 'info';
+      case 'PENDING':
         return 'warning';
+      default:
+        return 'default';
     }
   };
 

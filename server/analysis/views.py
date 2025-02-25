@@ -56,12 +56,25 @@ class AnalysisViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        user = self.request.user
-        return Analysis.objects.filter(user=user).order_by('-created_at')
-    
+        """Return analyses for the current user"""
+        return Analysis.objects.filter(user=self.request.user)
+
     def perform_create(self, serializer):
+        """Save the analysis with the current user"""
         serializer.save(user=self.request.user)
-    
+
+    def list(self, request, *args, **kwargs):
+        """List all analyses for the current user with customer info"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a single analysis with customer info"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
     def analyze_loan(self, customer_input):
         """Analyze loan application and return structured data"""
         try:
@@ -264,6 +277,32 @@ Remember: Return ONLY the JSON object, no other text."""
             import traceback
             print("Traceback:", traceback.format_exc())
             raise ValueError(f"Failed to analyze loan application: {str(e)}")
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """Update the status of an analysis"""
+        try:
+            analysis = self.get_object()
+            new_status = request.data.get('status')
+            
+            valid_statuses = [choice[0] for choice in Analysis.STATUS_CHOICES]
+            if new_status not in valid_statuses:
+                return Response(
+                    {'error': f'Invalid status. Must be one of: {valid_statuses}'},
+                    status=400
+                )
+            
+            analysis.status = new_status
+            analysis.save()
+            
+            serializer = self.get_serializer(analysis)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=400
+            )
 
     def create(self, request, *args, **kwargs):
         try:
